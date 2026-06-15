@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Event Attendance</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f4f8; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); max-width: 420px; width: 100%; padding: 32px 24px; text-align: center; }
+        .logo { font-size: 48px; margin-bottom: 16px; }
+        h1 { font-size: 22px; color: #1a1a2e; margin-bottom: 4px; }
+        .event-name { font-size: 16px; color: #0066cc; font-weight: 600; margin-bottom: 4px; }
+        .venue { font-size: 14px; color: #666; margin-bottom: 24px; }
+        .info-box { background: #e8f4fd; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: left; }
+        .info-box p { font-size: 13px; color: #333; margin-bottom: 8px; line-height: 1.5; }
+        .info-box p:last-child { margin-bottom: 0; }
+        .btn { display: block; width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .btn-primary { background: #0066cc; color: white; }
+        .btn-primary:hover { background: #0052a3; }
+        .btn-retry { background: #ff6b35; color: white; margin-top: 12px; }
+        .btn-retry:hover { background: #e55a2b; }
+        .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid rgba(0,102,204,0.2); border-top-color: #0066cc; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .status-icon { font-size: 48px; margin-bottom: 16px; }
+        .status-msg { font-size: 16px; color: #333; margin-bottom: 8px; line-height: 1.5; }
+        .status-detail { font-size: 13px; color: #888; margin-bottom: 20px; line-height: 1.5; }
+        .distance-badge { display: inline-block; background: #e8f4fd; padding: 6px 16px; border-radius: 20px; font-size: 14px; color: #0066cc; font-weight: 600; margin-bottom: 16px; }
+        .error-box { background: #fff3f0; border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: left; }
+        .error-box p { font-size: 13px; color: #cc3300; margin-bottom: 6px; line-height: 1.5; }
+        .error-box p:last-child { margin-bottom: 0; }
+        .success-check { color: #00a651; }
+        .footer { margin-top: 24px; font-size: 11px; color: #aaa; }
+
+        /* ============================================ */
+        /* CONFIGURATION GUIDE (visible in source code) */
+        /* ============================================ */
+        /*
+        TO UPDATE FOR FUTURE EVENTS:
+        
+        Scroll down to the <script> section and find
+        "EVENT CONFIGURATION" near the top.
+        
+        You can change:
+        1. EVENT_NAME     - Name of your event
+        2. VENUE_NAME     - Venue name shown on page
+        3. VENUE_ADDRESS  - Full address shown on page
+        4. VENUE_LAT      - Latitude of venue (from Google Maps)
+        5. VENUE_LNG      - Longitude of venue (from Google Maps)
+        6. MAX_DISTANCE   - How close attendees must be (in meters)
+        7. FORM_URL       - Your Microsoft Forms link
+        
+        HOW TO GET GPS COORDINATES:
+        1. Open Google Maps
+        2. Right-click on your venue
+        3. Click the coordinates that appear (they get copied)
+        4. First number = Latitude, Second number = Longitude
+        */
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <!-- Content will be loaded by JavaScript -->
+    </div>
+
+    <script>
+    // ╔══════════════════════════════════════════════════════════════╗
+    // ║                                                              ║
+    // ║                 EVENT CONFIGURATION                          ║
+    // ║                                                              ║
+    // ║   UPDATE THESE VALUES FOR EACH NEW EVENT                     ║
+    // ║                                                              ║
+    // ╚══════════════════════════════════════════════════════════════╝
+
+    // ---- EVENT DETAILS ----
+    var EVENT_NAME    = "CADE - Onsite Attendance";
+    var VENUE_NAME    = "National University Centre for Oral Health";
+    var VENUE_ADDRESS = "9 Lower Kent Ridge Rd, Singapore 119085";
+
+    // ---- GPS COORDINATES ----
+    // How to get: Google Maps > Right-click venue > Click coordinates
+    var VENUE_LAT     = 1.2933;      // Latitude
+    var VENUE_LNG     = 103.7806;    // Longitude
+
+    // ---- DISTANCE LIMIT ----
+    // How close attendees must be (in meters)
+    // 50 = same building, 100 = nearby, 500 = wider area
+    var MAX_DISTANCE  = 500;
+
+    // ---- MICROSOFT FORM URL ----
+    // Create form at forms.office.com > Copy link > Paste here
+    var FORM_URL      = "https://forms.office.com/r/fj0e2BZxY8";
+
+    // ╔══════════════════════════════════════════════════════════════╗
+    // ║          DO NOT EDIT BELOW THIS LINE                         ║
+    // ╚══════════════════════════════════════════════════════════════╝
+
+    var container = document.getElementById("mainContainer");
+
+    function showWelcome() {
+        container.innerHTML =
+            '<div class="logo">📍</div>' +
+            '<h1>' + EVENT_NAME + '</h1>' +
+            '<div class="event-name">' + VENUE_NAME + '</div>' +
+            '<div class="venue">' + VENUE_ADDRESS + '</div>' +
+            '<div class="info-box">' +
+                '<p><strong>How it works:</strong></p>' +
+                '<p>1. Tap the button below</p>' +
+                '<p>2. Allow location access when prompted</p>' +
+                '<p>3. We verify you are within ' + MAX_DISTANCE + 'm of the venue</p>' +
+                '<p>4. You will be redirected to the attendance form</p>' +
+            '</div>' +
+            '<button class="btn btn-primary" onclick="startLocationCheck()">📍 Enable Location & Check In</button>' +
+            '<div class="footer">Location is only used for attendance verification</div>';
+    }
+
+    function showLocating() {
+        container.innerHTML =
+            '<div class="spinner"></div>' +
+            '<h1>Locating You...</h1>' +
+            '<p class="status-msg">Please wait while we verify your location</p>' +
+            '<div class="status-detail">' +
+                '<p>Tips if it takes too long:</p>' +
+                '<p>• Move near a window or go outdoors</p>' +
+                '<p>• Make sure GPS is turned on</p>' +
+                '<p>• Disable battery saver mode</p>' +
+            '</div>';
+    }
+
+    function showSuccess(distance) {
+        var distText = Math.round(distance) + "m from venue";
+        container.innerHTML =
+            '<div class="status-icon success-check">✅</div>' +
+            '<h1>Location Verified!</h1>' +
+            '<div class="distance-badge">' + distText + '</div>' +
+            '<p class="status-msg">You are within the venue area.</p>' +
+            '<p class="status-detail">Redirecting to attendance form...</p>' +
+            '<button class="btn btn-primary" onclick="goToForm()">Open Attendance Form</button>' +
+            '<div class="footer">You will be redirected automatically</div>';
+
+        setTimeout(function() {
+            goToForm();
+        }, 2000);
+    }
+
+    function showTooFar(distance) {
+        var distText = Math.round(distance) + "m away";
+        container.innerHTML =
+            '<div class="status-icon">📏</div>' +
+            '<h1>Too Far From Venue</h1>' +
+            '<div class="distance-badge">' + distText + '</div>' +
+            '<p class="status-msg">You need to be within <strong>' + MAX_DISTANCE + ' meters</strong> of the venue to check in.</p>' +
+            '<p class="status-detail">Please move closer to:<br><strong>' + VENUE_NAME + '</strong><br>' + VENUE_ADDRESS + '</p>' +
+            '<button class="btn btn-primary" onclick="startLocationCheck()">🔄 Check Again</button>' +
+            '<div class="footer">Make sure you are at the venue and try again</div>';
+    }
+
+    function showError(title, message, details) {
+        container.innerHTML =
+            '<div class="status-icon">⚠️</div>' +
+            '<h1>' + title + '</h1>' +
+            '<p class="status-msg">' + message + '</p>' +
+            (details ? '<div class="error-box"><p>' + details + '</p></div>' : '') +
+            '<button class="btn btn-retry" onclick="startLocationCheck()">🔄 Try Again</button>' +
+            '<button class="btn btn-primary" onclick="showWelcome()" style="margin-top:8px;">← Back</button>';
+    }
+
+    function goToForm() {
+        window.location.href = FORM_URL;
+    }
+
+    function calculateDistance(lat1, lng1, lat2, lng2) {
+        var R = 6371000;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLng = (lng2 - lng1) * Math.PI / 180;
+        var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    function startLocationCheck() {
+        showLocating();
+
+        if (!navigator.geolocation) {
+            showError(
+                "GPS Not Supported",
+                "Your browser does not support location services.",
+                "Please use a modern browser like Chrome or Safari."
+            );
+            return;
+        }
+
+        var options = {
+            enableHighAccuracy: true,
+            timeout: 30000,
+            maximumAge: 0
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                var lat = position.coords.latitude;
+                var lng = position.coords.longitude;
+                var distance = calculateDistance(lat, lng, VENUE_LAT, VENUE_LNG);
+
+                if (distance <= MAX_DISTANCE) {
+                    showSuccess(distance);
+                } else {
+                    showTooFar(distance);
+                }
+            },
+            function(error) {
+                switch (error.code) {
+                    case 1:
+                        showError(
+                            "Location Permission Denied",
+                            "You need to allow location access to check in.",
+                            "<strong>How to fix:</strong><br><br>" +
+                            "<strong>iPhone Safari:</strong> Settings > Safari > Location > Allow<br><br>" +
+                            "<strong>iPhone Chrome:</strong> Settings > Chrome > Location > While Using<br><br>" +
+                            "<strong>Android Chrome:</strong> Tap the lock icon in address bar > Permissions > Location > Allow<br><br>" +
+                            "<strong>Samsung Internet:</strong> Settings > Sites and downloads > Site permissions > Location > Allow"
+                        );
+                        break;
+                    case 2:
+                        showError(
+                            "Location Unavailable",
+                            "Unable to determine your location.",
+                            "<strong>Try these steps:</strong><br><br>" +
+                            "1. Turn on GPS/Location in phone Settings<br>" +
+                            "2. Enable High Accuracy mode<br>" +
+                            "3. Move near a window or go outdoors<br>" +
+                            "4. Turn off battery saver mode<br>" +
+                            "5. Try using mobile data instead of WiFi"
+                        );
+                        break;
+                    case 3:
+                        showError(
+                            "Location Timeout",
+                            "Taking too long to find your location.",
+                            "<strong>Try these steps:</strong><br><br>" +
+                            "1. Move to an area with better GPS signal<br>" +
+                            "2. Go near a window or outdoors<br>" +
+                            "3. Wait a moment and try again<br>" +
+                            "4. Restart your phone\'s GPS"
+                        );
+                        break;
+                    default:
+                        showError(
+                            "Location Error",
+                            "An unknown error occurred.",
+                            "Please try again or contact the organizer."
+                        );
+                }
+            },
+            options
+        );
+    }
+
+    // Start the page
+    showWelcome();
+    </script>
+</body>
+</html>

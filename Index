@@ -73,7 +73,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
 
     // ---- EVENT DETAILS ----
-    var EVENT_NAME    = "CADE - Onsite Attendance";
+    var EVENT_NAME    = "CADE Onsite Attendance";
     var VENUE_NAME    = "National University Centre for Oral Health";
     var VENUE_ADDRESS = "9 Lower Kent Ridge Rd, Singapore 119085";
 
